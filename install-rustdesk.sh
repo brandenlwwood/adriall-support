@@ -1,24 +1,41 @@
 #!/bin/bash
 # ============================================================
-# Adriall Remote Support — RustDesk Installer for Linux
-# Usage: curl -fsSL <url>/install-rustdesk.sh | sudo bash
+# Remote Support — RustDesk Installer for Linux
+# Usage: curl ... | sudo bash -s -- --server <host> --key <key>
 # ============================================================
 
 set -e
 
 VERSION="1.4.1"
-SERVER="minewood.redirectme.net"
-KEY="6PgU7uQGTcmBvA86IlJ1QNuDve4ILtFq0iu4pbiQ3hY="
+SERVER=""
+KEY=""
+NAME="Remote Support"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --server) SERVER="$2"; shift 2 ;;
+        --key)    KEY="$2"; shift 2 ;;
+        --name)   NAME="$2"; shift 2 ;;
+        --version) VERSION="$2"; shift 2 ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+if [ -z "$SERVER" ] || [ -z "$KEY" ]; then
+    echo "Usage: $0 --server <hostname> --key <public_key>"
+    exit 1
+fi
 
 echo ""
 echo "========================================"
-echo "  Adriall Remote Support Setup"
+echo "  $NAME Setup"
 echo "========================================"
 echo ""
 
 # Check root
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root: sudo bash $0"
+    echo "Please run as root: sudo bash $0 --server $SERVER --key $KEY"
     exit 1
 fi
 
@@ -49,15 +66,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y ./rustdesk.deb > /dev/null 2>&
 echo "       Installed."
 
 # Step 3: Configure
-echo "[3/4] Configuring for Adriall remote support..."
+echo "[3/4] Configuring for $NAME..."
 systemctl stop rustdesk 2>/dev/null || true
 sleep 1
 
-# Find the actual user (not root if using sudo)
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(eval echo ~$REAL_USER)
 
-# Write config for both user and root
 for CFG_DIR in "$REAL_HOME/.config/rustdesk" "/root/.config/rustdesk"; do
     mkdir -p "$CFG_DIR"
     cat > "$CFG_DIR/RustDesk2.toml" << TOML
@@ -75,7 +90,6 @@ TOML
     chown -R $REAL_USER:$(id -gn $REAL_USER) "$CFG_DIR" 2>/dev/null || true
 done
 
-# Set permanent password
 rustdesk --password "$PASSWORD" 2>/dev/null || true
 
 # Step 4: Start service
@@ -84,10 +98,8 @@ systemctl enable rustdesk > /dev/null 2>&1
 systemctl restart rustdesk
 sleep 3
 
-# Get ID
 RUSTDESK_ID=$(rustdesk --get-id 2>/dev/null || echo "unknown")
 
-# Clean up
 rm -f /tmp/rustdesk.deb
 
 echo ""
@@ -98,7 +110,7 @@ echo ""
 echo "  Your Remote Support ID:  $RUSTDESK_ID"
 echo "  Your Password:           $PASSWORD"
 echo ""
-echo "  Please share these with your Adriall"
+echo "  Please share these with your"
 echo "  support technician so they can connect."
 echo ""
 echo "========================================"

@@ -1,44 +1,50 @@
-# Adriall Remote Support — RustDesk Installers
+# Remote Support — RustDesk Installers
 
-Pre-configured RustDesk installers that connect to Adriall's self-hosted relay server. Clients run one script and get an ID + password to share — no manual configuration needed.
+Generic, pre-configured RustDesk installers. Server config is passed as parameters — no secrets in the repo.
 
-## For Clients
+## Scripts
 
-### Windows
-Send them `Install-Adriall-Support.bat` — they double-click it and it handles everything:
-1. Downloads RustDesk
+### Windows (`install-rustdesk.ps1`)
+```powershell
+.\install-rustdesk.ps1 -Server "your.server.com" -Key "your_public_key"
+```
+
+Parameters:
+| Param | Required | Description |
+|-------|----------|-------------|
+| `-Server` | Yes | RustDesk server hostname |
+| `-Key` | Yes | Server public key |
+| `-Name` | No | Company name shown during install (default: "Remote Support") |
+| `-Version` | No | RustDesk version (default: 1.4.1) |
+
+### Linux (`install-rustdesk.sh`)
+```bash
+curl -fsSL https://raw.githubusercontent.com/<you>/adriall-support/main/install-rustdesk.sh \
+  | sudo bash -s -- --server your.server.com --key "your_public_key"
+```
+
+Parameters: `--server`, `--key`, `--name`, `--version`
+
+## Usage
+
+### Option A: .bat wrapper (Windows)
+Create a `.bat` file that downloads the generic `.ps1` and passes your config:
+```bat
+powershell.exe -ExecutionPolicy Bypass -Command "& { $s = (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/<you>/adriall-support/main/install-rustdesk.ps1'); $sb = [scriptblock]::Create($s); & $sb -Server 'your.server.com' -Key 'your_key' -Name 'Your Company' }"
+```
+Email this `.bat` to clients. Your config lives in the `.bat`, not the repo.
+
+### Option B: One-liner (Linux)
+```bash
+curl -fsSL https://raw.githubusercontent.com/<you>/adriall-support/main/install-rustdesk.sh \
+  | sudo bash -s -- --server your.server.com --key "your_key" --name "Your Company"
+```
+
+## What it does
+1. Downloads RustDesk from GitHub releases
 2. Installs silently
-3. Configures your server
+3. Configures your self-hosted server
 4. Generates a random password
-5. Displays the ID + password (also copies to clipboard)
+5. Displays ID + password for the client to share
 
-**Alternative:** If hosting the `.ps1` on GitHub, the `.bat` will download and run it automatically.
-
-### Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/brandenlwwood/adriall-support/main/install-rustdesk.sh | sudo bash
-```
-
-Or send them the `.sh` file:
-```bash
-chmod +x install-rustdesk.sh
-sudo ./install-rustdesk.sh
-```
-
-## For You (Technician)
-1. Send the appropriate installer to the client
-2. They run it and read back the ID + password
-3. You connect via RustDesk using those credentials
-
-## Server Details
-- **Relay:** minewood.redirectme.net
-- **Key:** `6PgU7uQGTcmBvA86IlJ1QNuDve4ILtFq0iu4pbiQ3hY=`
-- **Hosted on:** Unraid (10.10.1.6)
-
-## Hosting Options
-- **GitHub repo** — easiest, `.bat` can pull `.ps1` directly
-- **Your website** — host the scripts behind a short URL
-- **Email attachment** — send `.bat` (Windows) or `.sh` (Linux) directly
-
-## Updating
-When a new RustDesk version drops, update the `VERSION` variable at the top of each script.
+No manual configuration. No confusion.
